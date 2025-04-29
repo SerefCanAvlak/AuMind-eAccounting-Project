@@ -1183,6 +1183,18 @@
         }
       }
     },
+    "/api/SeedData/Create": {
+      "get": {
+        "tags": [
+          "SeedData"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/Test/SendTestEmail": {
       "get": {
         "tags": [

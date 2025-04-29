@@ -88,6 +88,14 @@
               "target": "Package",
               "version": "[2.1.39, )"
             },
+            "Microsoft.AspNetCore.SignalR": {
+              "target": "Package",
+              "version": "[1.2.0, )"
+            },
+            "Microsoft.AspNetCore.SignalR.Common": {
+              "target": "Package",
+              "version": "[8.0.1, )"
+            },
             "Microsoft.EntityFrameworkCore.Design": {
               "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "suppressParent": "All",
@@ -441,6 +449,10 @@
             "Azure.Identity": {
               "target": "Package",
               "version": "[1.13.2, )"
+            },
+            "Bogus": {
+              "target": "Package",
+              "version": "[35.6.3, )"
             },
             "DefaultCorsPolicy": {
               "target": "Package",

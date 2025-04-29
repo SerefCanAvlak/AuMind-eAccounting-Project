@@ -608,6 +608,16 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "eMuhasebeServer.WebAPI.Controllers.SeedDataController",
+    "Method": "Create",
+    "RelativePath": "api/SeedData/Create",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "eMuhasebeServer.WebAPI.Controllers.TestController",
     "Method": "SendTestEmail",
     "RelativePath": "api/Test/SendTestEmail",
