@@ -22,6 +22,7 @@ export const useAuth = () => {
   const [loginMutation] = useLoginMutation();
   const [changeCompanyMutation] = useChangeCompanyMutation();
 
+  console.log(loginMutation)
   const handleLogin = async (credentials) => {
     try {
       await loginMutation(credentials).unwrap();
