@@ -3,8 +3,11 @@ import { Button } from "../UI/Button";
 import { useAuth } from "../../hooks/useAuth";
 import { LogIn, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
-import {useGetAllUsersMutation, useChangeCompanyMutation} from "../../store/api"
-import {useToast} from "../../hooks/useToast"
+import {
+  useGetAllUsersMutation,
+  useChangeCompanyMutation,
+} from "../../store/api";
+import { useToast } from "../../hooks/useToast";
 import LoadingOverlay from "../UI/Spinner/LoadingOverlay";
 import ConfirmationModal from "../UI/Modals/ConfirmationModal";
 
@@ -14,12 +17,11 @@ const Header = () => {
 
   // Get the navigate function from the useNavigate hook
   const navigate = useNavigate();
-  
+
   // Get the isAuthenticated state and logout function from the useAuth hook
   const { isAuthenticated, logout, user } = useAuth();
-  
 
-  const {showToast} = useToast()
+  const { showToast } = useToast();
 
   // State for logout confirmation modal
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
@@ -31,7 +33,6 @@ const Header = () => {
   const [getAllUsers] = useGetAllUsersMutation();
   const [changeCompany] = useChangeCompanyMutation();
 
-  
   useEffect(() => {
     const fetchUsers = async () => {
       const result = await getAllUsers().unwrap();
@@ -45,18 +46,28 @@ const Header = () => {
     const fetchCompanies = async () => {
       try {
         const userResult = await getAllUsers().unwrap();
-        
+
         if (userResult?.isSuccessful) {
-          const userCompanies = Array.isArray(userResult.data) ? userResult.data : [];
+          const userCompanies = Array.isArray(userResult.data)
+            ? userResult.data
+            : [];
           console.log("userCompanies", userCompanies);
-          
+
           // Find current user using user info from useAuth
-          const currentUser = userCompanies.find(u => u.userName === user?.userName);
+          const currentUser = userCompanies.find(
+            (u) => u.userName === user?.userName
+          );
           console.log("Current user from useAuth:", user);
           console.log("Found current user:", currentUser);
-          
-          if (currentUser && currentUser.companyUsers && Array.isArray(currentUser.companyUsers)) {
-            const userCompanies = currentUser.companyUsers.map(cu => cu.company);
+
+          if (
+            currentUser &&
+            currentUser.companyUsers &&
+            Array.isArray(currentUser.companyUsers)
+          ) {
+            const userCompanies = currentUser.companyUsers.map(
+              (cu) => cu.company
+            );
             setCompanies(userCompanies);
           } else {
             setCompanies([]);
@@ -91,7 +102,7 @@ const Header = () => {
   const handleCompanyChange = async (companyId) => {
     try {
       const result = await changeCompany(companyId);
-      
+
       if (result?.data?.isSuccessful) {
         setIsDropdownOpen(false);
         showToast("Şirket değiştirildi", "success");
@@ -99,20 +110,30 @@ const Header = () => {
 
         // Şirket listesini yeniden yükle
         const userResult = await getAllUsers().unwrap();
-        
+
         if (userResult?.isSuccessful) {
-          const userCompanies = Array.isArray(userResult.data) ? userResult.data : [];
+          const userCompanies = Array.isArray(userResult.data)
+            ? userResult.data
+            : [];
           console.log("userCompanies", userCompanies);
-          const currentUser = userCompanies.find(u => u.userName === user?.userName);
+          const currentUser = userCompanies.find(
+            (u) => u.userName === user?.userName
+          );
           console.log("Current user from useAuth:", user);
           console.log("Found current user:", currentUser);
-          
-          if (currentUser && currentUser.companyUsers && Array.isArray(currentUser.companyUsers)) {
-            const userCompanies = currentUser.companyUsers.map(cu => cu.company);
+
+          if (
+            currentUser &&
+            currentUser.companyUsers &&
+            Array.isArray(currentUser.companyUsers)
+          ) {
+            const userCompanies = currentUser.companyUsers.map(
+              (cu) => cu.company
+            );
             setCompanies(userCompanies);
           }
         }
-        
+
         // Sayfayı yenile
         setTimeout(() => {
           window.location.reload();
@@ -136,39 +157,41 @@ const Header = () => {
       {/* Header */}
       <header className="bg-gray-800 text-white p-2 px-4 flex justify-between items-center">
         <div className="flex items-center border-l-[3px] ml-[-10px] border-yellow-400">
-          <div className="ml-4 bg-white text-black rounded px-3 py-2 flex items-center relative">
-            <span className="mr-2">{"Şirket Seçiniz"}</span>
-            {isAuthenticated && (
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="focus:outline-none"
-              >
-                <ChevronDown size={20} className="text-gray-600" />
-              </button>
-            )}
-            
-            {/* Company Dropdown */}
-            {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-md shadow-lg z-50">
-                <div className="py-1">
-                  {companies.map((company) => (
-                    <button
-                      key={company.id}
-                      onClick={() => handleCompanyChange(company.id)}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100`}
-                    >
-                      {company.name}
-                    </button>
-                  ))}
+          {isAuthenticated && (
+            <div className="ml-4 bg-white text-black rounded px-3 py-2 flex items-center relative">
+              <span className="mr-2">{"Şirket Seçiniz"}</span>
+              {isAuthenticated && (
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="focus:outline-none"
+                >
+                  <ChevronDown size={20} className="text-gray-600" />
+                </button>
+              )}
+
+              {/* Company Dropdown */}
+              {isDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white rounded-md shadow-lg z-50">
+                  <div className="py-1">
+                    {companies.map((company) => (
+                      <button
+                        key={company.id}
+                        onClick={() => handleCompanyChange(company.id)}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100`}
+                      >
+                        {company.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-x-3">
-         {/* Home Button */}
-         <Link to="/dashboard">
+          {/* Home Button */}
+          <Link to="/dashboard">
             <Button
               variant="ghost"
               size="icon"

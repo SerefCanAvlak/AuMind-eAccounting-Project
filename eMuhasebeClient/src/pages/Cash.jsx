@@ -42,13 +42,13 @@ const Cash = () => {
   // Detay butonu render fonksiyonu
   const renderDetailButton = (cash) => (
     <div className="flex justify-end mr-5">
-    <button
-      onClick={() => navigate(`/cash-transaction/${cash.id}`)}
-      className="bg-yellow-300 hover:bg-yellow-400 text-gray-800 font-medium py-1 px-3 rounded-md flex items-center"
-    >
-      <Info size={16} className="mr-1" />
-      Detay Gör
-    </button>
+      <button
+        onClick={() => navigate(`/cash-transaction/${cash.id}`)}
+        className="bg-yellow-300 hover:bg-yellow-400 text-gray-800 font-medium py-1 px-3 rounded-md flex items-center"
+      >
+        <Info size={16} className="mr-1" />
+        Detay Gör
+      </button>
     </div>
   );
 
@@ -79,11 +79,18 @@ const Cash = () => {
         const withdrawal = parseFloat(row.withdrawalAmount) || 0;
         const balance = deposit - withdrawal;
         return (
-          <span className={`text-right font-bold ${balance >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {balance.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          <span
+            className={`text-right font-bold ${
+              balance >= 0 ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {balance.toLocaleString("tr-TR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         );
-      }
+      },
     },
     {
       header: "İşlemler",
@@ -91,20 +98,19 @@ const Cash = () => {
       render: renderDetailButton,
     },
   ];
-
+  const fetchData = async () => {
+    try {
+      const result = await getAllCashRegisters().unwrap();
+      const cashArray = Array.isArray(result.data) ? result.data : [];
+      setCurrents(cashArray);
+      setFilteredCurrents(cashArray);
+    } catch (error) {
+      console.error("Error fetching cash registers:", error);
+      setCurrents([]);
+      setFilteredCurrents([]);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getAllCashRegisters().unwrap();
-        const cashArray = Array.isArray(result.data) ? result.data : [];
-        setCurrents(cashArray);
-        setFilteredCurrents(cashArray);
-      } catch (error) {
-        console.error("Error fetching cash registers:", error);
-        setCurrents([]);
-        setFilteredCurrents([]);
-      }
-    };
     fetchData();
   }, []);
 
@@ -118,20 +124,19 @@ const Cash = () => {
     }
   };
 
-  // Kasa ekleme işlemi
+  // Kasa ekleme
   const handleAddCash = () => {
     setIsAddModalOpen(true);
   };
 
-  // Kasa düzenleme işlemi
+  // Kasa düzenleme
   const handleEditCash = (cash) => {
     setSelectedCash(cash);
-    console.log(cash);
     setIsEditModalOpen(true);
   };
 
+  // Kasa ekleme işlemi
   const handleAddSubmit = async (cash) => {
-    debugger;
     const currencyType =
       cash.currencyTypeValue === "TL"
         ? 1
@@ -140,22 +145,25 @@ const Cash = () => {
         : cash.currencyTypeValue === "EUR"
         ? 3
         : 1;
-    try {
-      const result = await createCashRegister({
-        ...cash,
-        currencyTypeValue: currencyType,
-      });
-      showToast("Kasa başarıyla eklendi", "success");
 
-      setIsAddModalOpen(false);
-      setSelectedCash(null);
-    } catch (error) {
-      console.log(error);
-    }
+    const result = await createCashRegister({
+      ...cash,
+      currencyTypeValue: currencyType,
+    })
+      .unwrap()
+      .then(() => {
+        showToast("Kasa başarıyla eklendi", "success");
+        setIsAddModalOpen(false);
+        setSelectedCash(null);
+        fetchData();
+      })
+      .catch((err) => {
+        showToast(err.data?.errorMessages?.[0], "error");
+      });
   };
 
+  // Kasa düzenleme işlemi
   const handleEditSubmit = async (cash) => {
-   
     const currencyType =
       cash.currencyTypeValue === "TL"
         ? 1
@@ -164,23 +172,22 @@ const Cash = () => {
         : cash.currencyTypeValue === "EUR"
         ? 3
         : 1;
-    try {
-      const result = await updateCashRegister({
-        id: selectedCash.id,
-        ...cash,
-        currencyTypeValue: currencyType,
+    const result = await updateCashRegister({
+      id: selectedCash.id,
+      ...cash,
+      currencyTypeValue: currencyType,
+    })
+      .unwrap()
+      .then(() => {
+        showToast("Kasa başarıyla güncellendi", "success");
+        setIsEditModalOpen(false);
+        setSelectedCash(null);
+        fetchData();
+      })
+      .catch((err) => {
+        showToast(err.data?.errorMessages?.[0], "error");
       });
-      console.log("resultUpdate",result);
-      
-
-      showToast(`${result.data.data}`, "success");
-      setIsEditModalOpen(false);
-      setSelectedCash(null);
-    } catch (error) {
-      console.log(error);
-    }
   };
-  console.log(currents);
 
   // Kasa silme işlemi
   const handleDeleteCash = (cashId) => {
@@ -225,18 +232,17 @@ const Cash = () => {
       }
       setIsDeleteModalOpen(false);
       setCashToDelete(null);
+      setSelectedItems([]);
     }
   };
 
   // Kasa arama işlemi
   const handleSearch = (searchTerm) => {
-    debugger
     setFilteredCurrents(
       currents.filter((cash) =>
         cash.name.toLowerCase().trim().includes(searchTerm.toLowerCase().trim())
       )
     );
-    console.log(filteredCurrents);
     setCurrentPage(1);
   };
 

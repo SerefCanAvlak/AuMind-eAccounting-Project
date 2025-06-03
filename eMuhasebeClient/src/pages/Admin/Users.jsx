@@ -11,7 +11,14 @@ import {
 } from "../../store/api/usersApi";
 import { useToast } from "../../hooks/useToast";
 import { useDispatch, useSelector } from "react-redux";
-import { openAddModal, closeAddModal, openEditModal, closeEditModal, openDeleteModal, closeDeleteModal } from "../../store/slices/modalSlice";
+import {
+  openAddModal,
+  closeAddModal,
+  openEditModal,
+  closeEditModal,
+  openDeleteModal,
+  closeDeleteModal,
+} from "../../store/slices/modalSlice";
 import LoadingOverlay from "../../components/UI/Spinner/LoadingOverlay";
 
 function UsersPage() {
@@ -30,7 +37,6 @@ function UsersPage() {
     (state) => state.modal
   );
 
-
   // RTK Query hooks
   const [getAllUsers, { data, isUsersLoading, error }] =
     useGetAllUsersMutation();
@@ -38,23 +44,22 @@ function UsersPage() {
   const [updateUser, { isLoading: isUpdatingUser }] = useUpdateUserMutation();
   const [deleteUser, { isLoading: isDeletingUser }] = useDeleteUserMutation();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-       
-        const result = await getAllUsers().unwrap();
-        if (result?.isSuccessful) {
-          const formattedData = Array.isArray(result.data) ? result.data : [];
-          setUsers(formattedData);
-          setFilteredUsers(formattedData);
-        } else {
-          console.error("Error fetching users:", result?.errorMessages);
-        }
-      } catch (err) {
-        console.error("Error:", err);
+  const fetchData = async () => {
+    try {
+      const result = await getAllUsers().unwrap();
+      if (result?.isSuccessful) {
+        const formattedData = Array.isArray(result.data) ? result.data : [];
+        setUsers(formattedData);
+        setFilteredUsers(formattedData);
+      } else {
+        console.error("Error fetching users:", result?.errorMessages);
       }
-    };
+    } catch (err) {
+      console.error("Error:", err);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [getAllUsers]);
 
@@ -74,22 +79,21 @@ function UsersPage() {
     { header: "Kullanıcı Adı", accessor: "firstName" },
     { header: "Kullanıcı Soyadı", accessor: "lastName" },
     { header: "E-Mail Adresi", accessor: "email" },
-    { 
-      header: "Bağlı Olduğu Şirketler", 
+    {
+      header: "Bağlı Olduğu Şirketler",
       accessor: "companyUsers",
       Cell: ({ value }) => {
         if (!value) return "-";
         if (Array.isArray(value)) {
           const companyNames = value
-            .map(cu => cu.company?.name)
+            .map((cu) => cu.company?.name)
             .filter(Boolean);
           return companyNames.length > 0 ? companyNames.join(", ") : "-";
         }
         return value.company?.name || "-";
-      }
+      },
     },
     { header: "Username", accessor: "userName" },
-
   ];
 
   // Sayfalama işlemleri
@@ -134,43 +138,32 @@ function UsersPage() {
 
   // Kullanıcı oluşturma işlemi
   const handleUserSubmit = async (userData) => {
-    try {
-      await createUser(userData).unwrap();
-      showToast("Kullanıcı başarıyla oluşturuldu", "success");
-      dispatch(closeAddModal());
-      // Kullanıcı listesini yenile
-      await getAllUsers().unwrap();
-    } catch (err) {
-      console.error("Error creating user:", err);
-      showToast(
-        err.data?.errorMessages?.[0] ||
-          "Kullanıcı oluşturulurken bir hata oluştu",
-        "error"
-      );
-    }
+    await createUser(userData)
+      .unwrap()
+      .then(() => {
+        showToast("Kullanıcı başarıyla oluşturuldu", "success");
+        dispatch(closeAddModal());
+        fetchData();
+      })
+      .catch((err) => {
+        showToast(err.data?.errorMessages?.[0], "error");
+      });
   };
   const handleEditSubmit = async (userData, userId) => {
-    try {
-      console.log('Editing user:', { userData, userId })
-      
-      // Update user with the provided ID
-      await updateUser({
-        id: userId,
-        ...userData
-      }).unwrap();
-      await getAllUsers().unwrap();
-
-      showToast("Kullanıcı başarıyla güncellendi", "success");
-      dispatch(closeEditModal());
-      setSelectedUser(null);
-    } catch (err) {
-      console.error("Error updating user:", err);
-      showToast(
-        err.data?.errorMessages?.[0] ||
-          "Kullanıcı güncellenirken bir hata oluştu",
-        "error"
-      );
-    }
+    await updateUser({
+      id: userId,
+      ...userData,
+    })
+      .unwrap()
+      .then(() => {
+        showToast("Kullanıcı başarıyla güncellendi", "success");
+        dispatch(closeEditModal());
+        setSelectedUser(null);
+        fetchData();
+      })
+      .catch((err) => {
+        showToast(err.data?.errorMessages?.[0], "error");
+      });
   };
 
   // Kullanıcı düzenleme işlemi
@@ -184,7 +177,6 @@ function UsersPage() {
     if (Array.isArray(userId)) {
       // Toplu silme
       setUserToDelete({ ids: userId, name: `${userId.length} kullanıcı` });
-
     } else {
       // Tekli silme
       const user = users.find((u) => u.id === userId);
@@ -203,12 +195,12 @@ function UsersPage() {
         }
 
         showToast("Kullanıcılar başarıyla silindi", "success");
-        
+
         // Kullanıcı listesini yenile
-        const result = await getAllUsers().unwrap();  
-        
+        const result = await getAllUsers().unwrap();
+
         if (result?.isSuccessful) {
-          console.log("sffss")
+          console.log("sffss");
           const formattedData = Array.isArray(result.data) ? result.data : [];
           setUsers(formattedData);
           setFilteredUsers(formattedData);

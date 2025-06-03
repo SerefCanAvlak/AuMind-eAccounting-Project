@@ -11,7 +11,7 @@ import {
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,
 } from "../store/api";
-import {useToast} from "../hooks/useToast";
+import { useToast } from "../hooks/useToast";
 
 const Cariler = () => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const Cariler = () => {
   // );
 
   // RTK Query hooks
-  const { data, isLoading, error } = useGetAllCustomersQuery();
+  const { data, isLoading, error, refetch } = useGetAllCustomersQuery();
   const [createCustomer, { isLoading: isCreatingCustomer }] =
     useCreateCustomerMutation();
   const [updateCustomer, { isLoading: isUpdatingCustomer }] =
@@ -64,9 +64,10 @@ const Cariler = () => {
       className: "w-24 font-bold text-yellow-500",
     },
     { header: "Cari Adı", accessor: "name" },
-    { header: "Tipi", 
+    {
+      header: "Tipi",
       accessor: "type",
-      render: (row) => row.type?.name || "-", 
+      render: (row) => row.type?.name || "-",
     },
     { header: "İl", accessor: "city" },
     { header: "İlçe", accessor: "town" },
@@ -75,8 +76,8 @@ const Cariler = () => {
     { header: "Vergi Numarası", accessor: "taxNumber" },
     { header: "Giriş", accessor: "depositAmount" },
     { header: "Çıkış", accessor: "withdrawalAmount" },
-    { 
-      header: "Bakiye", 
+    {
+      header: "Bakiye",
       accessor: "balance",
       Cell: ({ row }) => {
         const deposit = parseFloat(row.depositAmount) || 0;
@@ -84,10 +85,13 @@ const Cariler = () => {
         const balance = deposit - withdrawal;
         return (
           <span className={balance >= 0 ? "text-green-600" : "text-red-600"}>
-            {balance.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {balance.toLocaleString("tr-TR", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </span>
         );
-      }
+      },
     },
     {
       header: "İşlemler",
@@ -95,15 +99,16 @@ const Cariler = () => {
       render: renderDetailButton,
     },
   ];
-  
-  
+
   useEffect(() => {
     if (data?.isSuccessful) {
       const formattedData = Array.isArray(data.data) ? data.data : [];
       setCurrents(formattedData);
       setFilteredCurrents(formattedData);
     } else if (error) {
-      console.error(error?.errorMessages?.[0] || "Müşteriler yüklenirken bir hata oluştu");
+      console.error(
+        error?.errorMessages?.[0] || "Müşteriler yüklenirken bir hata oluştu"
+      );
     }
   }, [data]);
 
@@ -117,43 +122,48 @@ const Cariler = () => {
     }
   };
 
-  // Cari sayfasına özel Detay Gör butonu
-  const detailButton = (
-    <button
-      //   onClick={handleUpdateDatabase}
-      className="bg-yellow-300 hover:bg-yellow-400 text-gray-800 font-medium py-2 px-4 rounded-md flex items-center mr-4"
-    >
-      <Info size={18} className="mr-2" />
-      Detay Gör
-    </button>
-  );
-
-  // Cari hesap ekleme işlemi
+  // Cari hesap ekleme
   const handleAddCari = () => {
     setIsAddModalOpen(true);
   };
 
-  // Cari hesap düzenleme işlemi
+  // Cari hesap düzenleme
   const handleEditCari = (cari) => {
     setSelectedCari(cari);
     setIsEditModalOpen(true);
   };
 
-  const handleSubmitCari = async (formData,isEditMode) => {
-    debugger
+  // Cari hesap ekleme ve düzenleme işlemleri
+  const handleSubmitCari = async (formData, isEditMode) => {
     if (isEditMode) {
       await updateCustomer(formData)
+        .unwrap()
+        .then(() => {
+          showToast("Cari hesap başarıyla güncellendi", "success");
+          setIsEditModalOpen(false);
+          setSelectedCari(null);
+          refetch();
+        })
+        .catch((err) => {
+          showToast(err.data?.errorMessages?.[0], "error");
+        });
     } else {
       await createCustomer(formData)
+        .unwrap()
+        .then(() => {
+          showToast("Cari hesap başarıyla eklendi", "success");
+          setIsAddModalOpen(false);
+          setSelectedCari(null);
+          refetch();
+        })
+        .catch((err) => {
+          showToast(err.data?.errorMessages?.[0], "error");
+        });
     }
-    setIsAddModalOpen(false);
-    setIsEditModalOpen(false);
-    setSelectedCari(null);
   };
 
   const handleEditCariSubmit = async (formData) => {
-    debugger
-    await handleSubmitCari({id:selectedCari.id,...formData}, true);
+    await handleSubmitCari({ id: selectedCari.id, ...formData }, true);
   };
 
   // Cari hesap silme işlemi
@@ -179,11 +189,17 @@ const Cariler = () => {
             for (const id of cariToDelete.ids) {
               await deleteCustomer(id);
             }
-            showToast(`${cariToDelete.ids.length} cari hesap başarıyla silindi`, "success");
+            showToast(
+              `${cariToDelete.ids.length} cari hesap başarıyla silindi`,
+              "success"
+            );
           } else {
             // Tekli silme
             await deleteCustomer(cariToDelete.ids);
-            showToast(`${cariToDelete.name} cari hesap başarıyla silindi`, "success");
+            showToast(
+              `${cariToDelete.name} cari hesap başarıyla silindi`,
+              "success"
+            );
           }
           // Update the currents state to remove deleted items
           const updatedCurrents = currents.filter(
@@ -198,8 +214,6 @@ const Cariler = () => {
         setIsDeleteModalOpen(false);
         setCariToDelete(null);
       }
-
-
     }
   };
 
@@ -216,7 +230,6 @@ const Cariler = () => {
   // Özel butonlar
   const customButtons = (
     <>
-      
       {selectedItems.length > 0 && (
         <button
           onClick={() => handleDeleteCari(selectedItems)}
@@ -234,8 +247,6 @@ const Cariler = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  
 
   return (
     <>
@@ -259,7 +270,6 @@ const Cariler = () => {
         headerTextColor="white"
         selectedItems={selectedItems}
         onSelectedItemsChange={setSelectedItems}
-        
       />
       <CariModal
         isOpen={isAddModalOpen}

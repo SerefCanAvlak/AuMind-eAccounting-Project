@@ -7,7 +7,7 @@ import Cariler from "../pages/Cariler";
 import CariHareketleri from "../pages/CariHareketleri";
 import Products from "../pages/Products";
 import ProductDetailPage from "../pages/ProductDetail";
-import InvoicesPage from "../pages/Admin/Invoices";
+import InvoicesPage from "../pages/Invoices";
 import BotSettingsPage from "../pages/settings/bot-settings";
 import ChatPage from "../pages/Chat";
 import CashPage from "../pages/Cash";

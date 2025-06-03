@@ -1,24 +1,21 @@
 import React, { useEffect, useState } from "react";
-import DataTable from "../../components/Admin/data-table";
+import DataTable from "../components/Admin/data-table";
 import { Info, Trash2, Download } from "lucide-react";
-import LoadingOverlay from "../../components/UI/Spinner/LoadingOverlay";
-import InvoiceModal from "../../components/UI/Modals/InvoiceModal";
-import DeleteConfirmationModal from "../../components/UI/Modals/DeleteConfirmationModal";
-import { useToast } from "../../hooks/useToast";
+import LoadingOverlay from "../components/UI/Spinner/LoadingOverlay";
+import InvoiceModal from "../components/UI/Modals/InvoiceModal";
+import DeleteConfirmationModal from "../components/UI/Modals/DeleteConfirmationModal";
+import { useToast } from "../hooks/useToast";
 import {
   useGetAllInvoicesQuery,
   useCreateInvoiceMutation,
   useUpdateInvoiceMutation,
   useDeleteInvoiceMutation,
   useGenerateInvoicePdfMutation,
-} from "../../store/api/invoicesApi";
-import { useGetAllCustomersQuery } from "../../store/api";
+} from "../store/api/invoicesApi";
 
 const Faturalar = () => {
-  const [faturalar, setFaturalar] = useState([]);
   const [filteredFaturalar, setFilteredFaturalar] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -29,16 +26,21 @@ const Faturalar = () => {
   const { showToast } = useToast();
 
   // RTK Query hooks
-  const getAllInvoices = useGetAllInvoicesQuery();
+  const { data: faturalar, isLoading, refetch } = useGetAllInvoicesQuery();
   const [createInvoice] = useCreateInvoiceMutation();
   const [updateInvoice] = useUpdateInvoiceMutation();
   const [deleteInvoice] = useDeleteInvoiceMutation();
   const [generatePdf] = useGenerateInvoicePdfMutation();
 
-  const { data } = useGetAllCustomersQuery();
-  console.log("data", data);
-
   const itemsPerPage = 50;
+
+  // Faturalar için useEffect - sadece filtreleme için
+  useEffect(() => {
+    if (faturalar) {
+      const data = faturalar.data || faturalar;
+      setFilteredFaturalar(data);
+    }
+  }, [faturalar]);
 
   // Faturalar tablosu sütun tanımları
   const columns = [
@@ -106,43 +108,14 @@ const Faturalar = () => {
     },
   ];
 
-  // Faturalar için useEffect
-  useEffect(() => {
-    if (getAllInvoices.data) {
-      const data = getAllInvoices.data.data || getAllInvoices.data;
-
-      setFaturalar(data);
-      setFilteredFaturalar(data);
-      setIsLoading(false);
-    }
-  }, [getAllInvoices]);
-
-  // Sayfalama işlemleri
-  const handlePageChange = (newPage) => {
-    if (
-      newPage >= 1 &&
-      newPage <= Math.ceil(filteredFaturalar.length / itemsPerPage)
-    ) {
-      setCurrentPage(newPage);
-    }
-  };
-
   // Fatura ekleme işlemi
-  const handleAddFatura = () => {
-    setIsAddModalOpen(true);
-  };
-
-  // Fatura düzenleme işlemi
-  const handleEditFatura = (fatura) => {
-    setSelectedFatura(fatura);
-    setIsEditModalOpen(true);
-  };
-
   const handleAddInvoice = async (formData) => {
     try {
-      await createInvoice(formData);
+      await createInvoice(formData).unwrap();
       setIsAddModalOpen(false);
       showToast("Fatura başarıyla oluşturuldu", "success");
+      // Cache'i yenile
+      refetch();
     } catch (error) {
       showToast(
         error.data?.errorMessages?.[0] ||
@@ -152,20 +125,11 @@ const Faturalar = () => {
     }
   };
 
-  // const handleEditInvoice = async (formData) => {
-  //   try {
-  //     await updateInvoice({ id: selectedFatura.id, ...formData }).unwrap();
-  //     setIsEditModalOpen(false);
-  //     showToast("Fatura başarıyla güncellendi", "success");
-  //     setSelectedFatura(null);
-  //   } catch (err) {
-  //     console.error("Error updating invoice:", err);
-  //     showToast(
-  //       err.data?.errorMessages?.[0] || "Fatura güncellenirken bir hata oluştu",
-  //       "error"
-  //     );
-  //   }
-  // };
+  // Fatura düzenleme işlemi
+  const handleEditFatura = (fatura) => {
+    setSelectedFatura(fatura);
+    setIsEditModalOpen(true);
+  };
 
   // Fatura silme işlemi
   const handleDeleteFatura = (faturaId) => {
@@ -175,7 +139,7 @@ const Faturalar = () => {
       setFaturaToDelete({ ids: faturaId, name: `${faturaId.length} fatura` });
     } else {
       // Tekli silme
-      const fatura = faturalar.find((f) => f.id === faturaId);
+      const fatura = faturalar.data?.find((f) => f.id === faturaId);
       setFaturaToDelete({ ids: [faturaId], name: fatura.invoiceNumber });
     }
     setIsDeleteModalOpen(true);
@@ -188,7 +152,7 @@ const Faturalar = () => {
         if (Array.isArray(faturaToDelete.ids)) {
           // Toplu silme
           for (const id of faturaToDelete.ids) {
-            await deleteInvoice(id);
+            await deleteInvoice(id).unwrap();
           }
           showToast(
             `${faturaToDelete.ids.length} fatura başarıyla silindi`,
@@ -196,18 +160,15 @@ const Faturalar = () => {
           );
         } else {
           // Tekli silme
-          await deleteInvoice(faturaToDelete.ids);
+          await deleteInvoice(faturaToDelete.ids).unwrap();
           showToast(
             `${faturaToDelete.name} fatura başarıyla silindi`,
             "success"
           );
         }
-        // Update the faturalar state to remove deleted items
-        const updatedFaturalar = faturalar.filter(
-          (fatura) => !faturaToDelete.ids.includes(fatura.id)
-        );
-        setFaturalar(updatedFaturalar);
-        setFilteredFaturalar(updatedFaturalar);
+        // Cache'i yenile ve seçili öğeleri sıfırla
+        refetch();
+        setSelectedItems([]); // Seçili öğeleri sıfırla
       } catch (error) {
         console.error("Error deleting invoice:", error);
         showToast(
@@ -223,11 +184,12 @@ const Faturalar = () => {
   // Fatura güncelleme işlemi
   const handleEditSubmit = async (invoiceData) => {
     try {
-      debugger;
       await updateInvoice({ id: selectedFatura.id, ...invoiceData }).unwrap();
       showToast("Fatura başarıyla güncellendi", "success");
       setIsEditModalOpen(false);
       setSelectedFatura(null);
+      // Cache'i yenile
+      refetch();
     } catch (err) {
       console.error("Error updating invoice:", err);
       showToast(
@@ -239,11 +201,14 @@ const Faturalar = () => {
 
   // Fatura arama işlemi
   const handleSearch = (searchTerm) => {
+    if (!faturalar) return;
+    
+    const data = faturalar.data || faturalar;
     if (searchTerm.trim() === "") {
-      setFilteredFaturalar(faturalar);
+      setFilteredFaturalar(data);
     } else {
       const searchTermLower = searchTerm.toLowerCase().trim();
-      const filtered = faturalar.filter(
+      const filtered = data.filter(
         (fatura) =>
           (fatura.invoiceNumber?.toLowerCase() || "").includes(
             searchTermLower
@@ -302,6 +267,10 @@ const Faturalar = () => {
     }
   };
 
+  if (isLoading) {
+    return <LoadingOverlay />;
+  }
+
   return (
     <>
       <DataTable
@@ -311,14 +280,14 @@ const Faturalar = () => {
         columns={columns}
         data={currentFaturalar}
         searchPlaceholder="Fatura No veya Müşteri Giriniz..."
-        onAdd={handleAddFatura}
+        onAdd={() => setIsAddModalOpen(true)}
         onEdit={handleEditFatura}
         onDelete={handleDeleteFatura}
         onSearch={handleSearch}
         itemsPerPage={itemsPerPage}
         currentPage={currentPage}
         totalItems={filteredFaturalar.length}
-        onPageChange={handlePageChange}
+        onPageChange={setCurrentPage}
         customButtons={customButtons}
         headerColor="gray-800"
         headerTextColor="white"

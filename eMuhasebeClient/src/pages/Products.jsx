@@ -37,7 +37,7 @@ const Products = () => {
   const [deleteProduct, { isLoading: isDeletingProduct }] =
     useDeleteProductMutation();
 
-  // Sayfa başına gösterilecek kasa sayısı
+  // Sayfa başına gösterilecek ürün sayısı
   const itemsPerPage = 50;
 
   // Detay butonu render fonksiyonu
@@ -75,22 +75,22 @@ const Products = () => {
       render: renderDetailButton,
     },
   ];
+  const fetchData = async () => {
+    try {
+      const result = await getAllProducts().unwrap();
+      console.log("API Response:", result); // API yanıtını kontrol et
+      const productArray = Array.isArray(result.data) ? result.data : [];
+      console.log("Product Array:", productArray); // Ürün array'ini kontrol et
+      setCurrents(productArray);
+      setFilteredCurrents(productArray);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      setCurrents([]);
+      setFilteredCurrents([]);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await getAllProducts().unwrap();
-        console.log("API Response:", result); // API yanıtını kontrol et
-        const productArray = Array.isArray(result.data) ? result.data : [];
-        console.log("Product Array:", productArray); // Ürün array'ini kontrol et
-        setCurrents(productArray);
-        setFilteredCurrents(productArray);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setCurrents([]);
-        setFilteredCurrents([]);
-      }
-    };
     fetchData();
   }, [getAllProducts]);
 
@@ -104,41 +104,49 @@ const Products = () => {
     }
   };
 
-  // Kasa ekleme işlemi
+  // Ürün ekleme işlemi
   const handleAddProduct = () => {
     setIsAddModalOpen(true);
   };
 
-  // Kasa düzenleme işlemi
+  // Ürün düzenleme işlemi
   const handleEditProduct = (product) => {
     setSelectedProduct(product);
     console.log(product);
     setIsEditModalOpen(true);
   };
 
+  // Ürün ekleme işlemi
   const handleAddSubmit = async (product) => {
-    debugger;
-    const result = await createProduct(product).unwrap();
-    console.log(result);
-    setIsAddModalOpen(false);
-    setSelectedProduct(null);
-    showToast("Ürün başarıyla eklendi", "success");
+    const result = await createProduct(product)
+      .unwrap()
+      .then((res) => {
+        setIsAddModalOpen(false);
+        setSelectedProduct(null);
+        showToast("Ürün başarıyla eklendi", "success");
+        fetchData();
+      })
+      .catch((err) => {
+        showToast(err.data.message, "error");
+      });
   };
 
   const handleEditSubmit = async (product) => {
-    debugger;
-    console.log(selectedProduct);
     const result = await updateProduct({
       id: selectedProduct.id,
       ...product,
-    }).unwrap();
-    console.log(result);
-    setIsEditModalOpen(false);
-    setSelectedProduct(null);
-    showToast("Ürün başarıyla güncellendi", "success");
-  };
+    }).unwrap().then((res) => {
+      setIsEditModalOpen(false);
+      setSelectedProduct(null);
+      showToast("Ürün başarıyla güncellendi", "success");
+      fetchData();
+    }).catch((err) => {
+      showToast(err.data.message, "error");
+    });
+    
+  };  
 
-  // Kasa silme işlemi
+  // Ürün silme işlemi
   const handleDeleteProduct = (productId) => {
     console.log(productId);
     if (Array.isArray(productId)) {
@@ -189,7 +197,7 @@ const Products = () => {
     }
   };
 
-  // Kasa arama işlemi
+  // Ürün arama işlemi
   const handleSearch = (searchTerm) => {
     console.log(searchTerm);
     console.log("currents array:", currents); // Debug için currents array'ini kontrol et

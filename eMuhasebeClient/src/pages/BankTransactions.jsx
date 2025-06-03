@@ -32,7 +32,6 @@ function BankTransactions() {
   const [name, setName] = useState("");
   const { showToast } = useToast();
 
-
   // RTK Query hooks
   const [getAllBankDetails] = useGetAllBankDetailsMutation();
   const [createBankDetail] = useCreateBankDetailMutation();
@@ -40,7 +39,6 @@ function BankTransactions() {
   const [deleteBankDetail] = useDeleteBankDetailMutation();
 
   const itemsPerPage = 50;
-  
 
   // Kasa hareketleri sütun tanımları
   const columns = [
@@ -63,30 +61,28 @@ function BankTransactions() {
     },
   ];
 
+  const fetchData = async () => {
+    try {
+      const response = await getAllBankDetails({
+        bankId: bankName,
+        startDate: "2024-05-05",
+        endDate: "2026-05-30",
+      }).unwrap();
+      console.log(response);
+      setBankData(response.data);
+      setTransactions(response.data.details);
+      setFilteredTransactions(response.data.details);
+      setBankName(response.data.id);
+      setName(response.data?.name);
 
+      setIsLoading(false);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   useEffect(() => {
-    const fetchData = async () => {
-      debugger
-      try {
-        const response = await getAllBankDetails({
-          bankId: bankName,
-          startDate: "2024-05-05",
-          endDate: "2026-05-30"
-        }).unwrap();
-        console.log(response);
-        setBankData(response.data);
-        setTransactions(response.data.details);
-        setFilteredTransactions(response.data.details);
-        setBankName(response.data.id);
-        setName(response.data?.name);
-
-        setIsLoading(false);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
     fetchData();
   }, [getAllBankDetails]);
 
@@ -113,30 +109,29 @@ function BankTransactions() {
     }
   };
 
- // Tarih filtresi uygulama
- const handleApplyFilter = async () => {
-  debugger
-  try {
-    setIsLoading(true);
-    const response = await getAllBankDetails({
-      bankId: bankName,
-      startDate: startDate || null,
-      endDate: endDate || null
-    }).unwrap();
-    
-    if (response?.isSuccessful) {
-      const details = response.data?.details || [];
-      setTransactions(details);
-      setFilteredTransactions(details);
-      showToast("Tarih filtresi başarıyla uygulandı", "success");
+  // Tarih filtresi uygulama
+  const handleApplyFilter = async () => {
+    try {
+      setIsLoading(true);
+      const response = await getAllBankDetails({
+        bankId: bankName,
+        startDate: startDate || null,
+        endDate: endDate || null,
+      }).unwrap();
+
+      if (response?.isSuccessful) {
+        const details = response.data?.details || [];
+        setTransactions(details);
+        setFilteredTransactions(details);
+        showToast("Tarih filtresi başarıyla uygulandı", "success");
+      }
+    } catch (error) {
+      console.error("Error applying date filter:", error);
+      showToast("Tarih filtresi uygulanırken bir hata oluştu", "error");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error applying date filter:", error);
-    showToast("Tarih filtresi uygulanırken bir hata oluştu", "error");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // İşlem ekleme işlemi
   const handleAddTransaction = () => {
@@ -152,7 +147,6 @@ function BankTransactions() {
   const handleAddBankTransaction = async (transactionData) => {
     try {
       setIsLoading(true);
-      debugger;
       // Prepare the data with proper null handling for opposite IDs
       const transactionPayload = {
         ...transactionData,
@@ -161,35 +155,50 @@ function BankTransactions() {
         oppositeCustomerId: transactionData.oppositeCustomerId || null,
       };
 
-      const response = await createBankDetail(transactionPayload).unwrap();
-      console.log("Yeni işlem eklendi:", response);
-      setIsAddModalOpen(false);
-      setIsLoading(false);
+      const response = await createBankDetail(transactionPayload)
+      .unwrap()
+      .then((res) => {
+        showToast("İşlem başarıyla eklendi", "success");
+        setIsAddModalOpen(false);
+        setIsLoading(false);
+        fetchData();
+      })
+      .catch((error) => {
+        showToast(error.data.message, "error");
+      });
+      
     } catch (error) {
       console.error("İşlem ekleme hatası:", error);
     } finally {
       setIsLoading(false);
     }
   };
-console.log(selectedTransaction)
+  console.log(selectedTransaction);
   const handleUpdateBankTransaction = async (transactionData) => {
-    debugger
     try {
       setIsLoading(true);
-      
+
       // Prepare the data with proper null handling for opposite IDs
       const transactionPayload = {
         ...transactionData,
-        id:selectedTransaction.id,
-        bankId:selectedTransaction.bankId,
-        type:selectedTransaction.depositAmount === 0 ? 1: 0,
+        id: selectedTransaction.id,
+        bankId: selectedTransaction.bankId,
+        type: selectedTransaction.depositAmount === 0 ? 1 : 0,
       };
-     
 
-      const response = await updateBankDetail(transactionPayload).unwrap();
-      console.log("Yeni işlem güncellendi:", response);
-      setIsAddModalOpen(false);
-      setIsLoading(false);
+      const response = await updateBankDetail(transactionPayload)
+      .unwrap()
+      .then((res) => {
+        showToast("İşlem başarıyla güncellendi", "success");
+        setIsEditModalOpen(false);
+        setIsLoading(false);
+        fetchData();
+      })
+      .catch((error) => {
+        showToast(error.data.message, "error");
+      });
+      
+      
     } catch (error) {
       console.error("İşlem güncelleme hatası:", error);
     } finally {
@@ -199,7 +208,6 @@ console.log(selectedTransaction)
 
   // İşlem silme işlemi
   const handleDeleteTransaction = (transactionId) => {
-    
     if (Array.isArray(transactionId)) {
       // Toplu silme
       setTransactionToDelete({
@@ -227,11 +235,17 @@ console.log(selectedTransaction)
             for (const id of transactionToDelete.ids) {
               await deleteBankDetail(id);
             }
-            showToast(`${transactionToDelete.ids.length} işlem başarıyla silindi`, "success");
+            showToast(
+              `${transactionToDelete.ids.length} işlem başarıyla silindi`,
+              "success"
+            );
           } else {
             // Tekli silme
             await deleteBankDetail(transactionToDelete.ids);
-            showToast(`${transactionToDelete.name} işlem başarıyla silindi`, "success");
+            showToast(
+              `${transactionToDelete.name} işlem başarıyla silindi`,
+              "success"
+            );
           }
           // Update the currents state to remove deleted items
           const updatedCurrents = transactions.filter(
@@ -246,11 +260,8 @@ console.log(selectedTransaction)
         setIsDeleteModalOpen(false);
         setTransactionToDelete(null);
       }
-
-
     }
   };
- 
 
   // Geçerli sayfadaki işlemleri hesapla
   const currentTransactions = Array.isArray(filteredTransactions)
@@ -311,8 +322,8 @@ console.log(selectedTransaction)
       Seçilenleri Sil ({selectedItems.length})
     </button>
   );
- 
-  console.log("selectedItems",selectedItems)
+
+  console.log("selectedItems", selectedItems);
 
   return (
     <>
@@ -351,7 +362,6 @@ console.log(selectedTransaction)
         onClose={() => setIsAddModalOpen(false)}
         onAddTransaction={handleAddBankTransaction}
         bankData={bankData}
-        
       />
       <BankTransactionsModal
         isOpen={isEditModalOpen}

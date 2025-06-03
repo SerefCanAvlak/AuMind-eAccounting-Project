@@ -12,6 +12,7 @@ export const api = createApi({
       return headers;
     },
   }),
+  tagTypes: ["Invoices", "PurchaseReports", "Customers", "Products", "Users", "Companies", "Banks", "BankDetails", "CashRegisterDetails"],  
   endpoints: (builder) => ({
     // Reports endpoints
     getPurchaseReports: builder.query({
@@ -157,6 +158,7 @@ export const api = createApi({
         },
         body: JSON.stringify({}),
       }),
+      providesTags: ["Invoices"],
     }),
 
     createInvoice: builder.mutation({
@@ -168,6 +170,7 @@ export const api = createApi({
         },
         body: JSON.stringify(invoiceData),
       }),
+      invalidatesTags: ["Invoices"],
     }),
 
     updateInvoice: builder.mutation({
@@ -179,6 +182,7 @@ export const api = createApi({
         },
         body: JSON.stringify(invoiceData),
       }),
+      invalidatesTags: ["Invoices"],
     }),
 
     deleteInvoice: builder.mutation({
@@ -190,6 +194,7 @@ export const api = createApi({
         },
         body: JSON.stringify({ id: invoiceIds }),
       }),
+      invalidatesTags: ["Invoices"],
     }),
 
     generateInvoicePdf: builder.mutation({
@@ -204,6 +209,7 @@ export const api = createApi({
           return response.blob();
         },
       }),
+      invalidatesTags: ["Invoices"],
     }),
 
     // Extract text from invoice
@@ -443,6 +449,7 @@ export const api = createApi({
         },
         body: customerData,
       }),
+      invalidatesTags: ["Customers"],
     }),
     deleteCustomer: builder.mutation({
       query: (customerId) => ({
@@ -453,6 +460,7 @@ export const api = createApi({
         },
         body: { id: customerId },
       }),
+      invalidatesTags: ["Customers"],
     }),
 
     // CashRegisters endpoints

@@ -5,22 +5,22 @@ import { useParams } from "react-router-dom";
 
 const CariHareketleri = () => {
   const [cariHareketleri, setCariHareketleri] = useState([]);
-  const [getAllCariHareketleri, { isLoading }] = useGetAllCustomerDetailsMutation();
+  const [getAllCariHareketleri, { isLoading }] =
+    useGetAllCustomerDetailsMutation();
 
-  const { id:customerId } = useParams();
-
+  const { id: customerId } = useParams();
+  const fetchCariHareketleri = async () => {
+    try {
+      const response = await getAllCariHareketleri(customerId).unwrap();
+      setCariHareketleri(response.data.details);
+    } catch (error) {
+      console.error("Error fetching cari hareketleri:", error);
+    }
+  };
   useEffect(() => {
-    const fetchCariHareketleri = async () => {
-      try {
-        const response = await getAllCariHareketleri(customerId).unwrap();
-        setCariHareketleri(response.data.details);
-      } catch (error) {
-        console.error("Error fetching cari hareketleri:", error);
-      }
-    };
     fetchCariHareketleri();
-  }, [getAllCariHareketleri,customerId]);
- 
+  }, [getAllCariHareketleri, customerId]);
+
   return (
     <DataTable
       title="Cari Hareketleri"

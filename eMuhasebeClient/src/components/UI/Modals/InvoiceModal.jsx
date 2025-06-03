@@ -8,6 +8,14 @@ import {
 } from "../../../store/api";
 import { toast } from "react-hot-toast";
 
+// Sayı formatlama fonksiyonu
+const formatNumber = (number) => {
+  return new Intl.NumberFormat('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(number);
+};
+
 function InvoiceModal({
   isOpen,
   isEditMode,
@@ -152,12 +160,16 @@ function InvoiceModal({
       // Ürün detaylarını hazırla
       const details = invoice.details?.map((detail) => {
         const product = productsData.find((p) => p.id === detail.productId);
+        const quantity = Number(detail.quantity) || 0;
+        const price = Number(detail.price) || 0;
+        const total = formatNumber(quantity * price); // Toplamı formatla
+
         return {
           productId: product?.name || "",
           quantity: detail.quantity,
           price: detail.price,
           vatRate: detail.vatRate,
-          total: detail.total,
+          total: total,
         };
       });
 
@@ -204,7 +216,7 @@ function InvoiceModal({
         name === "price"
           ? Number.parseFloat(value) || 0
           : Number.parseFloat(newItem.price) || 0;
-      updatedItem.total = (quantity * price).toFixed(2);
+      updatedItem.total = formatNumber(quantity * price);
     }
 
     // KDV input'u temizlendiğinde 0 olarak ayarla
@@ -217,6 +229,13 @@ function InvoiceModal({
 
   const addItem = () => {
     if (newItem.productId && newItem.quantity && newItem.price) {
+      // Adet kontrolü ekle
+      const quantity = Number(newItem.quantity);
+      if (quantity <= 0) {
+        toast.error('Adet 0 veya negatif olamaz');
+        return;
+      }
+
       setFormData({
         ...formData,
         details: [...formData.details, { ...newItem }],
@@ -243,6 +262,17 @@ function InvoiceModal({
     try {
       setIsSubmitting(true);
       console.log('Submit işlemi başlatıldı');
+
+      // Adet kontrolü
+      const hasInvalidQuantity = formData.details.some(item => {
+        const quantity = Number(item.quantity);
+        return quantity <= 0;
+      });
+
+      if (hasInvalidQuantity) {
+        toast.error('Adet 0 veya negatif olamaz');
+        return;
+      }
 
       // Müşteri kontrolü
       const customer = customers?.data?.find(
@@ -424,13 +454,13 @@ function InvoiceModal({
           // Toplam tutarı hesapla
           const quantity = Number(item.quantity) || 0;
           const price = Number(item.price) || 0;
-          const total = (quantity * price).toFixed(2);
+          const calculatedTotal = formatNumber(quantity * price);
 
           return {
             productId: product?.name || item.productName || "",
             quantity: item.quantity || "",
             price: item.price || "",
-            total: total,
+            total: calculatedTotal,
             vatRate: item.vatRate || 0
           };
         }) || [];
@@ -624,6 +654,8 @@ function InvoiceModal({
                 name="quantity"
                 value={newItem.quantity}
                 onChange={handleItemChange}
+                min="0.01"
+                step="0.01"
                 className="w-full border border-gray-300 rounded-md p-2 bg-white"
               />
             </div>
@@ -690,10 +722,10 @@ function InvoiceModal({
                     <tr key={index} className="border-b border-gray-300">
                       <td className="py-2">{index + 1}</td>
                       <td className="py-2">{item.productId}</td>
-                      <td className="py-2">{Number(item.quantity).toFixed(2)}</td>
-                      <td className="py-2">{Number(item.price).toFixed(2)} ₺</td>
+                      <td className="py-2">{formatNumber(Number(item.quantity))}</td>
+                      <td className="py-2">{formatNumber(Number(item.price))} ₺</td>
                       <td className="py-2">%{Number(item.vatRate).toFixed(2)}</td>
-                      <td className="py-2">{Number(item.total).toFixed(2)} ₺</td>
+                      <td className="py-2">{item.total} ₺</td>
                       <td className="py-2">
                         <button
                           type="button"
@@ -723,7 +755,7 @@ function InvoiceModal({
                   <tr className="border-t border-gray-400 font-semibold">
                     <td colSpan="5" className="py-2 text-right">Toplam Tutar:</td>
                     <td className="py-2">
-                      {formData.details.reduce((sum, item) => sum + Number(item.total), 0).toFixed(2)} ₺
+                      {formatNumber(formData.details.reduce((sum, item) => sum + Number(item.total.replace(/\./g, '').replace(',', '.')), 0))} ₺
                     </td>
                     <td></td>
                   </tr>

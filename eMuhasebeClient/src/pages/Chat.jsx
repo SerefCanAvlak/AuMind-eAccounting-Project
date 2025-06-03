@@ -19,6 +19,65 @@ function ChatPage() {
     }
   }, [messages])
 
+  // JSON yanıtını parse et ve message içeriğini al
+  const parseResponse = (response) => {
+    try {
+      // Eğer response zaten string ise ve JSON formatında değilse direkt döndür
+      if (typeof response === 'string' && !response.trim().startsWith('{')) {
+        return response;
+      }
+
+      // JSON string'i parse et
+      const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
+      
+      // Eğer tablo verisi varsa, HTML tablosuna dönüştür
+      if (jsonResponse.table) {
+        const { columns, rows } = jsonResponse.table;
+        const tableHtml = `
+          <div class="mb-4">${jsonResponse.message || ''}</div>
+          <table>
+            <thead>
+              <tr>
+                ${columns.map(col => `<th>${col}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  ${row.map(cell => `<td>${cell}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        return tableHtml;
+      }
+      
+      // Tablo yoksa message alanını döndür
+      return jsonResponse.message || jsonResponse;
+    } catch (error) {
+      console.error('Yanıt parse hatası:', error);
+      return response; // Parse edilemezse orijinal yanıtı döndür
+    }
+  };
+
+  // HTML içeriğini güvenli bir şekilde render et
+  const renderMessageContent = (content) => {
+    // HTML içeriğini güvenli bir şekilde render et
+    return (
+      <div 
+        className="prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ 
+          __html: content
+            .replace(/<table/g, '<table class="min-w-full divide-y divide-gray-200 overflow-x-auto"')
+            .replace(/<th/g, '<th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"')
+            .replace(/<td/g, '<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 border-t border-gray-200"')
+            .replace(/<div class="mb-4">/g, '<div class="mb-4 text-gray-700">')
+        }} 
+      />
+    );
+  };
+
   const handleSendMessage = async () => {
     if (inputMessage.trim() === "") return
 
@@ -31,9 +90,12 @@ function ChatPage() {
     try {
       const response = await getChatSummary(inputMessage).unwrap()
       
+      // Yanıtı parse et
+      const parsedContent = parseResponse(response);
+      
       const botResponse = {
         role: "assistant",
-        content: response,
+        content: parsedContent,
       }
 
       addMessage(botResponse)
@@ -104,10 +166,10 @@ function ChatPage() {
             <h1 className="text-xl font-bold">AuMind Muhasebe Asistanı</h1>
           </div>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2">
           <button
             onClick={handleDownloadChat}
-            className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-md mr-2 flex items-center"
+            className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-md flex items-center"
             title="Sohbeti indir"
           >
             <Download size={18} className="mr-1" />
@@ -144,7 +206,11 @@ function ChatPage() {
                   )}
                   <span className="font-medium">{message.role === "assistant" ? "Muhasebe Asistanı" : "Siz"}</span>
                 </div>
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                <div className="text-sm leading-relaxed">
+                  {message.role === "assistant" 
+                    ? renderMessageContent(message.content)
+                    : message.content}
+                </div>
               </div>
             </div>
           ))}

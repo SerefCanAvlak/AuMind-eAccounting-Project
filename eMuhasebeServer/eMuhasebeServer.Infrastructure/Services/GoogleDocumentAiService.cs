@@ -23,7 +23,7 @@ internal sealed class GoogleDocumentAiService : IVisionService
     {
         Environment.SetEnvironmentVariable(
             "GOOGLE_APPLICATION_CREDENTIALS",
-            "C:\\Users\\Şeref\\Desktop\\arcane-pipe-459911-q6-6e70afd9150c.json");
+            "C:\\Users\\softw\\OneDrive\\Masaüstü\\arcane-pipe-459911-q6-6e70afd9150c.json");
 
         imageStream.Position = 0;
         using var memoryStream = new MemoryStream();
