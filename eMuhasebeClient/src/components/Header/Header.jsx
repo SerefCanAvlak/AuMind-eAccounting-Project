@@ -36,7 +36,6 @@ const Header = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       const result = await getAllUsers().unwrap();
-      console.log("users", result);
     };
     fetchUsers();
   }, [getAllUsers]);
@@ -51,14 +50,11 @@ const Header = () => {
           const userCompanies = Array.isArray(userResult.data)
             ? userResult.data
             : [];
-          console.log("userCompanies", userCompanies);
 
           // Find current user using user info from useAuth
           const currentUser = userCompanies.find(
             (u) => u.userName === user?.userName
           );
-          console.log("Current user from useAuth:", user);
-          console.log("Found current user:", currentUser);
 
           if (
             currentUser &&
@@ -115,12 +111,10 @@ const Header = () => {
           const userCompanies = Array.isArray(userResult.data)
             ? userResult.data
             : [];
-          console.log("userCompanies", userCompanies);
+
           const currentUser = userCompanies.find(
             (u) => u.userName === user?.userName
           );
-          console.log("Current user from useAuth:", user);
-          console.log("Found current user:", currentUser);
 
           if (
             currentUser &&

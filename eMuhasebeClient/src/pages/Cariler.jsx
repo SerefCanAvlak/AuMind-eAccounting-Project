@@ -213,6 +213,7 @@ const Cariler = () => {
         }
         setIsDeleteModalOpen(false);
         setCariToDelete(null);
+        setSelectedItems([]);
       }
     }
   };

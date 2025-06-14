@@ -40,6 +40,26 @@ function BankTransactions() {
 
   const itemsPerPage = 50;
 
+  // Para birimi formatla (sembol olmadan)
+  const formatAmount = (amount) => {
+    try {
+      // Mutlak değer kullanarak eksi işaretini kaldır
+      const absoluteAmount = Math.abs(amount);
+      
+      // Türkçe para birimi formatında sayıyı formatla
+      return new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(absoluteAmount);
+    } catch (error) {
+      console.warn('Para birimi formatlama hatası:', error);
+      return Math.abs(amount).toLocaleString('tr-TR', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+      });
+    }
+  };
+
   // Kasa hareketleri sütun tanımları
   const columns = [
     {
@@ -53,11 +73,13 @@ function BankTransactions() {
       header: "Giriş",
       accessor: "depositAmount",
       className: "text-right text-green-600 font-medium",
+      Cell: ({ value }) => formatAmount(value)
     },
     {
       header: "Çıkış",
       accessor: "withdrawalAmount",
       className: "text-right text-red-600 font-medium",
+      Cell: ({ value }) => formatAmount(value)
     },
   ];
 
@@ -155,17 +177,17 @@ function BankTransactions() {
         oppositeCustomerId: transactionData.oppositeCustomerId || null,
       };
 
-      const response = await createBankDetail(transactionPayload)
-      .unwrap()
-      .then((res) => {
-        showToast("İşlem başarıyla eklendi", "success");
-        setIsAddModalOpen(false);
-        setIsLoading(false);
-        fetchData();
-      })
-      .catch((error) => {
-        showToast(error.data.message, "error");
-      });
+      await createBankDetail(transactionPayload)
+        .unwrap()
+        .then(() => {
+          showToast("İşlem başarıyla eklendi", "success");
+          setIsAddModalOpen(false);
+          setIsLoading(false);
+          fetchData();
+        })
+        .catch((error) => {
+          showToast(error.data.message, "error");
+        });
       
     } catch (error) {
       console.error("İşlem ekleme hatası:", error);
@@ -173,7 +195,7 @@ function BankTransactions() {
       setIsLoading(false);
     }
   };
-  console.log(selectedTransaction);
+
   const handleUpdateBankTransaction = async (transactionData) => {
     try {
       setIsLoading(true);
@@ -186,18 +208,17 @@ function BankTransactions() {
         type: selectedTransaction.depositAmount === 0 ? 1 : 0,
       };
 
-      const response = await updateBankDetail(transactionPayload)
-      .unwrap()
-      .then((res) => {
-        showToast("İşlem başarıyla güncellendi", "success");
-        setIsEditModalOpen(false);
-        setIsLoading(false);
-        fetchData();
-      })
-      .catch((error) => {
-        showToast(error.data.message, "error");
-      });
-      
+      await updateBankDetail(transactionPayload)
+        .unwrap()
+        .then(() => {
+          showToast("İşlem başarıyla güncellendi", "success");
+          setIsEditModalOpen(false);
+          setIsLoading(false);
+          fetchData();
+        })
+        .catch((error) => {
+          showToast(error.data.message, "error");
+        });
       
     } catch (error) {
       console.error("İşlem güncelleme hatası:", error);
@@ -259,6 +280,7 @@ function BankTransactions() {
         }
         setIsDeleteModalOpen(false);
         setTransactionToDelete(null);
+        setSelectedItems([]);
       }
     }
   };

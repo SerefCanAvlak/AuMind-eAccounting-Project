@@ -3,6 +3,8 @@ import { Send, Bot, User, Loader2, ArrowLeft, Download, Share2 } from "lucide-re
 import { useNavigate } from "react-router-dom"
 import { useAccountingBot } from "../hooks/useAccountingBot"
 import { useGetChatSummaryMutation } from "../store/api/aiChatApi"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function ChatPage() {
   const { messages, addMessage } = useAccountingBot()
@@ -19,7 +21,7 @@ function ChatPage() {
     }
   }, [messages])
 
-  // JSON yanıtını parse et ve message içeriğini al
+  // JSON yanıtını parse et ve içeriği al
   const parseResponse = (response) => {
     try {
       // Eğer response zaten string ise ve JSON formatında değilse direkt döndür
@@ -30,51 +32,104 @@ function ChatPage() {
       // JSON string'i parse et
       const jsonResponse = typeof response === 'string' ? JSON.parse(response) : response;
       
-      // Eğer tablo verisi varsa, HTML tablosuna dönüştür
+      // Backend'den gelen message formatını kontrol et
+      if (jsonResponse.message) {
+        return jsonResponse.message;
+      }
+
+      // Eğer tablo verisi varsa, markdown tablosuna dönüştür
       if (jsonResponse.table) {
         const { columns, rows } = jsonResponse.table;
-        const tableHtml = `
-          <div class="mb-4">${jsonResponse.message || ''}</div>
-          <table>
-            <thead>
-              <tr>
-                ${columns.map(col => `<th>${col}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(row => `
-                <tr>
-                  ${row.map(cell => `<td>${cell}</td>`).join('')}
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        const tableMarkdown = `
+${jsonResponse.message || ''}
+
+| ${columns.join(' | ')} |
+| ${columns.map(() => '---').join(' | ')} |
+${rows.map(row => `| ${row.join(' | ')} |`).join('\n')}
         `;
-        return tableHtml;
+        return tableMarkdown;
       }
       
-      // Tablo yoksa message alanını döndür
-      return jsonResponse.message || jsonResponse;
+      // Eğer response bir string ise direkt döndür
+      if (typeof jsonResponse === 'string') {
+        return jsonResponse;
+      }
+      
+      // Diğer JSON yanıtları için
+      return JSON.stringify(jsonResponse, null, 2);
     } catch (error) {
       console.error('Yanıt parse hatası:', error);
       return response; // Parse edilemezse orijinal yanıtı döndür
     }
   };
 
-  // HTML içeriğini güvenli bir şekilde render et
+  // Markdown içeriğini render et
   const renderMessageContent = (content) => {
-    // HTML içeriğini güvenli bir şekilde render et
+    if (!content) return null;
+
     return (
-      <div 
-        className="prose prose-sm max-w-none"
-        dangerouslySetInnerHTML={{ 
-          __html: content
-            .replace(/<table/g, '<table class="min-w-full divide-y divide-gray-200 overflow-x-auto"')
-            .replace(/<th/g, '<th class="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"')
-            .replace(/<td/g, '<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900 border-t border-gray-200"')
-            .replace(/<div class="mb-4">/g, '<div class="mb-4 text-gray-700">')
-        }} 
-      />
+      <div className="prose prose-sm max-w-none">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            p: props => (
+              <p className="text-gray-700 mb-4" {...props} />
+            ),
+            table: props => (
+              <div className="overflow-x-auto my-4">
+                <table className="min-w-full divide-y divide-gray-200" {...props} />
+              </div>
+            ),
+            th: props => (
+              <th className="px-4 py-2 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-b border-gray-200" {...props} />
+            ),
+            td: props => (
+              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900 border-b border-gray-200" {...props} />
+            ),
+            tr: props => (
+              <tr className="hover:bg-gray-50" {...props} />
+            ),
+            code: props => (
+              <code className="bg-gray-100 rounded px-1 py-0.5 text-sm font-mono" {...props} />
+            ),
+            pre: props => (
+              <pre className="bg-gray-100 rounded p-4 overflow-x-auto my-4" {...props} />
+            ),
+            ul: props => (
+              <ul className="list-disc list-inside mb-4 text-gray-700" {...props} />
+            ),
+            ol: props => (
+              <ol className="list-decimal list-inside mb-4 text-gray-700" {...props} />
+            ),
+            li: props => (
+              <li className="mb-1" {...props} />
+            ),
+            blockquote: props => (
+              <blockquote className="border-l-4 border-gray-300 pl-4 italic my-4 text-gray-600" {...props} />
+            ),
+            h1: props => (
+              <h1 className="text-2xl font-bold mb-4 text-gray-900" {...props} />
+            ),
+            h2: props => (
+              <h2 className="text-xl font-bold mb-3 text-gray-900" {...props} />
+            ),
+            h3: props => (
+              <h3 className="text-lg font-bold mb-2 text-gray-900" {...props} />
+            ),
+            a: props => (
+              <a className="text-cyan-600 hover:text-cyan-700 underline" {...props} />
+            ),
+            strong: props => (
+              <strong className="font-semibold" {...props} />
+            ),
+            em: props => (
+              <em className="italic" {...props} />
+            )
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
     );
   };
 

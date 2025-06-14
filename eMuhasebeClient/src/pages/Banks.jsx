@@ -83,6 +83,51 @@ function Banks() {
     }
   };
 
+  // Para birimi sembolünü al
+  const getCurrencySymbol = (currencyType) => {
+   
+    
+    // currencyType.name'e göre sembol belirle
+    switch (currencyType?.name?.toUpperCase()) {
+      case 'USD':
+      case 'DOLAR':
+        return '$';
+      case 'EUR':
+      case 'EURO':
+        return '€';
+      case 'TRY':
+      case 'TL':
+      case 'TÜRK LİRASI':
+      default:
+        return '₺';
+    }
+  };
+
+  // Para birimi formatla
+  const formatCurrency = (amount, currencyType) => {
+   
+    
+    const currencySymbol = getCurrencySymbol(currencyType);
+    
+    try {
+      // Mutlak değer kullanarak eksi işaretini kaldır
+      const absoluteAmount = Math.abs(amount);
+      
+      // Özel formatlama için NumberFormat kullan
+      const formattedNumber = new Intl.NumberFormat('tr-TR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(absoluteAmount);
+
+      // Para birimi sembolünü ekle
+      return `${currencySymbol}${formattedNumber}`;
+    } catch (error) {
+      console.warn('Para birimi formatlama hatası:', error);
+      const absoluteAmount = Math.abs(amount);
+      return `${currencySymbol}${absoluteAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       {/* Başlık */}
@@ -94,68 +139,72 @@ function Banks() {
       {/* Banka Kartları */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Mevcut Banka Kartları */}
-        {banks.map((bank) => (
-          <div key={bank.id} className="bg-gray-700 rounded-lg p-6 text-white">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">{bank.name}</h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setSelectedBank(bank);
-                    setIsEditModalOpen(true);
-                  }}
-                  className="p-1 hover:bg-gray-600 rounded transition-colors"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedBank(bank);
-                    setIsDeleteModalOpen(true);
-                  }}
-                  className="p-1 hover:bg-gray-600 rounded transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+        {banks.map((bank) => {
+          
+          
+          return (
+            <div key={bank.id} className="bg-gray-700 rounded-lg p-6 text-white">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">{bank.name}</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedBank(bank);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="p-1 hover:bg-gray-600 rounded transition-colors"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedBank(bank);
+                      setIsDeleteModalOpen(true);
+                    }}
+                    className="p-1 hover:bg-gray-600 rounded transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="w-full h-0.5 bg-white mb-4"></div>
+              <div className="w-full h-0.5 bg-white mb-4"></div>
 
-            <div className="text-center mb-4">
-              <p className="text-gray-300">Iban Numarası</p>
-              <p className="font-medium">{bank.iban}</p>
-            </div>
-
-            <div className="text-center mb-4">
-              <p className="text-gray-300">Döviz Tipi</p>
-              <p className="font-medium">{bank.currencyType.name}</p>
-            </div>
-
-            <div className="flex justify-between mb-4">
-              <div className="text-center">
-                <p className="text-gray-300">Giriş</p>
-                <p className="font-medium">{bank.depositAmount}</p>
+              <div className="text-center mb-4">
+                <p className="text-gray-300">Iban Numarası</p>
+                <p className="font-medium">{bank.iban}</p>
               </div>
-              <div className="text-center">
-                <p className="text-gray-300">Çıkış</p>
-                <p className="font-medium">{bank.withdrawalAmount}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-gray-300">Bakiye</p>
-                <p className="font-medium">{bank.depositAmount - bank.withdrawalAmount}</p>
-              </div>
-            </div>
 
-            <button
-              onClick={() => {
-                navigate(`/bank-transactions/${bank.id}`);
-              }}
-              className="w-full bg-white text-gray-800 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
-            >
-              Detaylar
-            </button>
-          </div>
-        ))}
+              <div className="text-center mb-4">
+                <p className="text-gray-300">Döviz Tipi</p>
+                <p className="font-medium">{bank.currencyType.name}</p>
+              </div>
+
+              <div className="flex justify-between mb-4">
+                <div className="text-center">
+                  <p className="text-gray-300">Giriş</p>
+                  <p className="font-medium">{formatCurrency(bank.depositAmount || 0, bank.currencyType)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-300">Çıkış</p>
+                  <p className="font-medium">{formatCurrency(bank.withdrawalAmount || 0, bank.currencyType)}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-300">Bakiye</p>
+                  <p className="font-medium">{formatCurrency((bank.depositAmount || 0) - (bank.withdrawalAmount || 0), bank.currencyType)}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  navigate(`/bank-transactions/${bank.id}`);
+                }}
+                className="w-full bg-white text-gray-800 py-2 rounded-md font-medium hover:bg-gray-200 transition-colors"
+              >
+                Detaylar
+              </button>
+            </div>
+          );
+        })}
 
         {/* Yeni Banka Ekleme Kartı */}
         <div
